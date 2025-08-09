@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>生日星图 · 私人入口</title>
+<meta name="color-scheme" content="light dark">
+<!-- 如做分享封面，可放同目录 cover.png，并取消下一行注释 -->
+<!-- <meta property="og:image" content="cover.png"> -->
+<style>
+  /* ====== 主题与基础 ====== */
+  :root{
+    --bg1:#0b1023; --bg2:#111a3a; --accent:#ffd166; --accent2:#7bd389;
+    --card:#12172c; --text:#e7e9f3; --muted:#aab0c6; --btn:#2a2f49; --btn-hover:#3a4061;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    color:var(--text); background: radial-gradient(1200px 800px at 70% -10%, #1d2550 0, transparent 60%) ,linear-gradient(180deg,var(--bg1),var(--bg2));
+    overflow-x:hidden;
+  }
+
+  /* ====== 登录页 ====== */
+  #loginPage, #mainPage{min-height:100%; display:none}
+  #loginPage{
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    background:linear-gradient(135deg,#141a2b,#1d2450);
+  }
+  .loginBox{
+    width:min(420px,92vw);
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:16px; padding:22px 20px 18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+    transform-origin:50% 40%;
+    animation: popIn .38s ease-out;
+  }
+  .loginBox h2{margin:4px 0 14px; text-align:center; font-weight:800; letter-spacing:.6px}
+  .loginBox .hint{color:var(--muted); text-align:center; margin:-6px 0 14px; font-size:14px}
+  .field{display:flex; flex-direction:column; gap:6px; margin:10px 0}
+  .field label{font-size:13px; color:var(--muted)}
+  .field input{
+    padding:11px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06); color:var(--text);
+  }
+  .loginBox button{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.25);
+    background:linear-gradient(90deg,#2d355e,#394172); color:var(--text); font-weight:700; cursor:pointer;
+    transition:transform .06s ease;
+  }
+  .loginBox button:active{transform:translateY(1px)}
+  .error{color:#ff8a80; font-size:14px; min-height:18px; text-align:center; margin:8px 0 0}
+  @keyframes popIn{from{opacity:0; transform:scale(.96)} to{opacity:1; transform:scale(1)}}
+  @keyframes wobble{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)} 40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)} 80%{transform:translateX(3px)}
+  }
+
+  /* ====== 主页面 ====== */
+  #stars, #confettiCanvas{position:fixed; inset:0; z-index:-2; display:block}
+  header{
+    width:100%; padding:16px 20px; display:flex; gap:12px; align-items:center; justify-content:space-between;
+    position:sticky; top:0; background:linear-gradient(180deg,rgba(11,16,35,.75),rgba(11,16,35,0));
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  header h1{margin:0; font-size:clamp(18px,3.2vw,24px); letter-spacing:.5px}
+  header small{color:var(--muted)}
+  .pill{
+    padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.06);
+    display:inline-flex; align-items:center; gap:8px; font-size:14px; color:var(--muted);
+  }
+  .wrap{min-height:calc(100% - 80px); display:grid; place-items:center; padding:40px 16px 80px}
+  .card{
+    width:min(900px,92vw); border-radius:20px; background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.12); padding:28px; box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+  .title{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:10px}
+  .title h2{margin:0; font-size:clamp(22px,4.5vw,36px)}
+  .subtitle{color:var(--muted); margin:.25rem 0 1rem}
+
+  /* ====== 照片轮播 ====== */
+  .photo{
+    position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden;
+    border:1px dashed rgba(255,255,255,.2); display:grid; place-items:center; margin:14px 0 20px;
+    background:linear-gradient(135deg,rgba(255,209,102,.06),rgba(123,211,137,.06));
+  }
+  .photo img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    opacity:1; transition: opacity .8s ease;
+  }
+  .photo img.fade-out{opacity:0}
+
+  /* 按钮、文字区、瞬间、许愿、Toast、流星等 */
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin:8px 0 16px}
+  button{
+    border:1px solid rgba(255,255,255,.18); background:var(--btn); color:var(--text);
+    padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600; transition:transform .08s ease, background .2s ease;
+  }
+  button:hover{background:var(--btn-hover)}
+  button:active{transform:translateY(1px)}
+  .primary{background:linear-gradient(90deg,#2d355e,#394172); border-color:rgba(255,255,255,.25)}
+  .glow{box-shadow:0 0 0 0 rgba(255,209,102,.6); animation: pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,209,102,.6)}70%{box-shadow:0 0 0 22px rgba(255,209,102,0)}100%{box-shadow:0 0 0 0 rgba(255,209,102,0)}}
+  .prose{min-height:140px; font-size:clamp(16px,2.6vw,18px); letter-spacing:.2px; position:relative; padding-right:8px}
+  .cursor::after{content:"▌"; margin-left:2px; animation:blink 1s steps(2,end) infinite; color:var(--accent)}
+  @keyframes blink{50%{opacity:0}}
+  .moments{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:14px}
+  .moment{border:1px solid rgba(255,255,255,.16); border-radius:14px; padding:12px; background:rgba(255,255,255,.05)}
+  .moment h4{margin:2px 0 8px; font-size:15px; color:var(--accent)}
+  .moment p{margin:0; color:#dfe3f7; font-size:14px}
+  .wishbar{display:flex; gap:8px; margin-top:16px}
+  input[type="text"]{flex:1; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); color:var(--text); padding:10px 12px; border-radius:12px; min-width:0;}
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(20,26,50,.9);
+    border:1px solid rgba(255,255,255,.18); color:var(--text); padding:10px 14px; border-radius:12px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease; z-index:50
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px)}
+  .shooting{
+    position:fixed; top:-40px; left:-40px; width:2px; height:2px; background:linear-gradient(90deg,white,rgba(255,255,255,0));
+    border-radius:2px; box-shadow:0 0 8px white, 0 0 16px var(--accent); z-index:2; pointer-events:none;
+  }
+
+  /* 无障碍 & 亮色模式 */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important}
+  }
+  @media (prefers-color-scheme:light){
+    :root{--card:#ffffff14; --text:#0f1221; --muted:#4b5070; --btn:#eef0fb; --btn-hover:#e1e5ff}
+    body{color:var(--text)}
+    .card{border-color:#e6e8f5; background:#ffffffcc}
+    .moment{background:#f5f7ff}
+    header{background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0))}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============= 登录页面 ============= -->
+<div id="loginPage" role="dialog" aria-labelledby="loginTitle" aria-describedby="loginDesc">
+  <div class="loginBox" id="loginBox">
+    <h2 id="loginTitle">进入生日星图</h2>
+    <p class="hint" id="loginDesc">请输入用户名与密码</p>
+
+    <div class="field">
+      <label for="username">用户名</label>
+      <input type="text" id="username" placeholder="输入用户名" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">密码</label>
+      <input type="password" id="password" placeholder="输入密码" autocomplete="current-password" />
+    </div>
+
+    <div class="error" id="errorMsg" aria-live="polite"></div>
+    <button id="loginBtn">进入</button>
+  </div>
+</div>
+
+<!-- ============= 主页面（登录成功后显示） ============= -->
+<div id="mainPage" aria-hidden="true">
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <canvas id="confettiCanvas" aria-hidden="true"></canvas>
+
+  <header>
+    <div>
+      <h1>🎂 致 <span id="who">张博文</span> 的生日星图</h1>
+      <small id="date">2025 年 8 月 10 日</small>
+    </div>
+    <span class="pill" aria-hidden="true">✨ 点击交互更有趣</span>
+  </header>
+
+  <main class="wrap">
+    <section class="card" id="mainCard" aria-live="polite">
+      <div class="title">
+        <h2>「愿你在人类群星闪耀时，写下自己的段落」</h2>
+      </div>
+      <p class="subtitle">按下下面的按钮，开启你的高光时刻和流星许愿。</p>
+
+      <!-- 照片轮播区：把文件名改成你的，或改成 images/xxx.jpg -->
+      <figure class="photo" id="photoFrame" aria-label="照片轮播">
+        <img id="slideImg" src="photo1.jpg" alt="张博文的生日照片" />
+      </figure>
+
+      <div class="actions">
+        <button id="start" class="primary glow" aria-controls="prose">开启祝福</button>
+        <button id="momentBtn" title="解锁一个高光时刻">解锁瞬间</button>
+        <button id="confettiBtn" title="庆祝一下">庆祝一下</button>
+      </div>
+
+      <div id="prose" class="prose cursor" aria-label="祝福文字区"></div>
+
+      <div class="moments" id="moments" aria-live="polite"></div>
+
+      <div class="wishbar" aria-label="许愿">
+        <input id="wishInput" type="text" placeholder="在这里悄悄许一个愿..." autocomplete="off" />
+        <button id="wishBtn" title="发射流星">发射流星</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+/* ========= 登录逻辑 ========= */
+const loginPage = document.getElementById('loginPage');
+const mainPage  = document.getElementById('mainPage');
+const loginBox  = document.getElementById('loginBox');
+const errorMsg  = document.getElementById('errorMsg');
+const userInput = document.getElementById('username');
+const passInput = document.getElementById('password');
+const loginBtn  = document.getElementById('loginBtn');
+
+showLogin();
+// 如需“记住已登录”，可用 sessionStorage：
+// if (sessionStorage.getItem('authed') === '1') showMain(); else showLogin();
+
+function showLogin(){
+  loginPage.style.display = 'flex';
+  mainPage.style.display  = 'none';
+  mainPage.setAttribute('aria-hidden','true');
+  setTimeout(()=>userInput.focus(), 50);
+}
+function showMain(){
+  loginPage.style.display = 'none';
+  mainPage.style.display  = 'block';
+  mainPage.removeAttribute('aria-hidden');
+  // 进入时小小庆祝
+  setTimeout(()=>{ try{ burstConfetti(); }catch(e){} }, 200);
+}
+
+function checkLogin(){
+  const u = userInput.value.trim();
+  const p = passInput.value.trim();
+  if(u==="张博文" && p==="20040810"){
+    // sessionStorage.setItem('authed','1');
+    showMain();
+  }else{
+    errorMsg.textContent = "用户名或密码错误";
+    loginBox.style.animation = 'wobble .35s';
+    loginBox.addEventListener('animationend', ()=> loginBox.style.animation = '', {once:true});
+    passInput.select();
+  }
+}
+loginBtn.addEventListener('click', checkLogin);
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && loginPage.style.display !== 'none'){
+    e.preventDefault(); checkLogin();
+  }
+});
+
+/* ========= 小工具 ========= */
+const $ = sel => document.querySelector(sel);
+function toast(msg, ms=1800){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), ms);
+}
+function typeWriter(lines, el, speed=26){
+  el.classList.add('cursor');
+  let p = 0, i = 0; el.textContent = "";
+  const next = () => {
+    if(p >= lines.length){ el.classList.remove('cursor'); return }
+    const line = lines[p] + (p < lines.length-1 ? "\n\n" : "");
+    const tick = () => {
+      el.textContent += line[i++];
+      if(i < line.length){ setTimeout(tick, speed) }
+      else { p++; i = 0; setTimeout(next, 400) }
+    };
+    tick();
+  };
+  next();
+}
+
+/* ========= 星空背景 ========= */
+(function starfield(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  function resize(){
+    c.width = innerWidth * devicePixelRatio;
+    c.height = innerHeight * devicePixelRatio;
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    const count = Math.min(250, Math.floor(c.width*c.height/30000));
+    for(let k=0;k<count;k++){
+      const x=Math.random()*c.width, y=Math.random()*c.height, r=Math.random()*1.4+0.3, a=Math.random()*Math.PI*2;
+      const twinkle=(Math.sin(a)+1)/2;
+      ctx.globalAlpha = 0.2 + twinkle*0.8;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill(); ctx.globalAlpha=1;
+    }
+    requestAnimationFrame(draw);
+  }
+  resize(); draw();
+  addEventListener('resize', resize);
+})();
+
+/* ========= 彩带 ========= */
+function burstConfetti(){
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  const DPR = devicePixelRatio || 1;
+  canvas.width = innerWidth * DPR; canvas.height = innerHeight * DPR;
+
+  const pieces = Array.from({length: 140}, () => ({
+    x: Math.random()*canvas.width, y: -20*Math.random()*DPR,
+    w: 6*DPR, h: (6+Math.random()*8)*DPR, r: Math.random()*Math.PI,
+    vx: (Math.random()-.5)*0.8*DPR, vy: (1.2+Math.random()*1.8)*DPR,
+    spin: (Math.random()-.5)*0.2
+  }));
+
+  let t = 0;
+  (function draw(){
+    t++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(const p of pieces){
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r += p.spin);
+      ctx.fillStyle = `hsl(${(p.x/5 + t*3)%360} 90% 60%)`;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+      p.x += p.vx; p.y += p.vy; p.vy += 0.03*DPR;
+    }
+    if(t < 260) requestAnimationFrame(draw); else ctx.clearRect(0,0,canvas.width,canvas.height);
+  })();
+}
+
+/* ========= 流星 ========= */
+function shootStar(fromX, fromY, toX, toY){
+  const s = document.createElement('div');
+  s.className = 'shooting';
+  document.body.appendChild(s);
+  const dx = toX - fromX, dy = toY - fromY;
+  const dist = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx);
+  s.style.transform = `translate(${fromX}px, ${fromY}px) rotate(${angle}rad)`;
+  s.style.width = dist + 'px';
+  s.animate([
+    { transform:`translate(${fromX}px,${fromY}px) rotate(${angle}rad)`, opacity:1 },
+    { transform:`translate(${toX}px,${toY}px) rotate(${angle}rad)`, opacity:0 }
+  ], { duration: 1200, easing:'ease-out' })
+  .addEventListener('finish', ()=> s.remove());
+}
+
+/* ========= “群星体”祝福 ========= */
+const lines = [
+  "在这一天，时间像一位严谨的书记官，翻到写有张博文名字的页码。纪年与分秒在这里交汇——不是要宣布结论，而是为一次新的出发立下誓词。",
+  "历史从不偏爱喧哗，它偏爱那种悄无声息的累积。你把普通的日子码成台阶，忽然某一刻，云层松动，星光下沉，恰好落在张博文的肩上。",
+  "愿你在漫长的准备与猝然的机遇之间，保持那一份清醒的勇气：当门扉轻响，你能第一时间把手放在把手上；当风向转变，你不慌不忙地给船加帆。",
+  "若前路偶有薄雾，不妨把它当作舞台的灯光。你向前一步，世界便向你靠近一步——这不是偶然，而是耐心的必然。",
+  "愿你把明天写得像判词又像情书：对自己严格，对未来温柔。愿“张博文”这个名字，有一天被某个坐在夜灯下的人，轻声念起，然后莞尔一笑：原来高光，出自平常。"
+];
+
+/* ========= 高光时刻 ========= */
+const momentPool = [
+  {t:"瞬间一 · 安静的胜利", d:"当别人还在起跑线上寻找姿势，张博文已经悄悄迈出第一步。小步不响，却能走很远。"},
+  {t:"瞬间二 · 选择的分岔", d:"在“容易”和“正确”之间，张博文常常选后者。代价是慢一点，收获是一生安心。"},
+  {t:"瞬间三 · 朋友的证词", d:"有人提起张博文的名字，语气自然上扬半度。这是人间最不张扬的光。"},
+  {t:"瞬间四 · 明天的预告", d:"张博文还未登场，舞台已为你调好灯。请相信：长镜头里，你的角色越来越清晰。"},
+  {t:"瞬间五 · 学会告别", d:"会对过去说谢谢，也会对自己说继续。这是成年人真正的生日礼物。"},
+];
+
+/* ========= 照片轮播 ========= */
+/* 把下面文件名改成你的；也可以写 'images/photo1.jpg' 这种路径 */
+const photos = [
+  'photo1.jpg',
+  'photo2.jpg',
+  'photo3.jpg',
+  'photo4.jpg',
+  'photo5.jpg'
+];
+let currentPhoto = 0;
+const slideImg = document.getElementById('slideImg');
+
+/* 预加载，切换更顺滑 */
+const preload = photos.map(src => { const im = new Image(); im.src = src; return im; });
+
+function changePhoto() {
+  // 淡出 → 换图 → 淡入
+  slideImg.classList.add('fade-out');
+  setTimeout(() => {
+    currentPhoto = (currentPhoto + 1) % photos.length;
+    slideImg.src = photos[currentPhoto];
+    slideImg.classList.remove('fade-out');
+  }, 800); // 与 CSS 过渡保持一致
+}
+
+/* 每 5 秒切换一张 */
+setInterval(changePhoto, 5000);
+
+/* ========= 交互绑定 ========= */
+const proseEl = document.getElementById('prose');
+document.getElementById('start').addEventListener('click', ()=>{
+  typeWriter(lines, proseEl, 22);
+  burstConfetti();
+  toast('祝福已启动 ✨');
+  document.getElementById('start').classList.remove('glow');
+});
+document.getElementById('momentBtn').addEventListener('click', ()=>{
+  const data = momentPool[Math.floor(Math.random()*momentPool.length)];
+  const box = document.createElement('article');
+  box.className = 'moment';
+  box.innerHTML = `<h4>${data.t}</h4><p>${data.d}</p>`;
+  document.getElementById('moments').prepend(box);
+  toast('解锁一个高光瞬间');
+});
+document.getElementById('confettiBtn').addEventListener('click', burstConfetti);
+document.getElementById('wishBtn').addEventListener('click', ()=>{
+  const v = document.getElementById('wishInput').value.trim();
+  const center = {x: innerWidth*0.12, y: innerHeight*0.15};
+  shootStar(center.x, center.y, innerWidth-40, innerHeight-60);
+  if(v){
+    toast('愿望已收到：' + v);
+    const box = document.createElement('article');
+    box.className = 'moment';
+    box.innerHTML = `<h4>你的愿望</h4><p>${v}</p>`;
+    document.getElementById('moments').prepend(box);
+    document.getElementById('wishInput').value = '';
+  }else{
+    toast('也可以先写下愿望，再发射流星～');
+  }
+});
+document.getElementById('wishInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('wishBtn').click(); }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'c' && (e.ctrlKey || e.metaKey)){ burstConfetti(); } // Ctrl/Cmd + C = Celebrate :)
+});
+</script>
+</body>
+</html>
